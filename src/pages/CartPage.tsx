@@ -6,6 +6,7 @@ import { CartItem, getCart, removeFromCart, saveCart, updateQty } from "../lib/c
 import { PublicFooterCTA } from "../components/layout/PublicFooterCTA";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
+import { WhatsAppButton } from "../components/ui/WhatsAppButton";
 
 export const CartPage: React.FC = () => {
   const [items, setItems] = React.useState<CartItem[]>([]);
@@ -19,6 +20,11 @@ export const CartPage: React.FC = () => {
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
   const total = subtotal;
+  const whatsappMessage = items.length
+    ? `Hello! I'd like to order:\n${items
+        .map((item) => `- ${item.name} x${item.qty} (GHS ${item.price})`)
+        .join("\n")}\nTotal: GHS ${total}`
+    : "Hello! I need help with my cart.";
 
   const onDecrease = (id: string) => {
     const current = items.find((i) => i.id === id);
@@ -52,7 +58,7 @@ export const CartPage: React.FC = () => {
   return (
     <div className="page-shell">
       <PublicNavbar />
-      <div className="mx-auto max-w-6xl px-4 pb-16 pt-20 md:px-6">
+      <div className="mx-auto max-w-6xl px-4 pb-16 pt-16 sm:pt-20 md:px-6">
         <PageHeader
           title="Shopping cart"
           subtitle="Review items before checkout."
@@ -72,7 +78,7 @@ export const CartPage: React.FC = () => {
         />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.4fr)]">
-          <div className="card p-5">
+          <div className="card p-4 sm:p-5">
             {items.length === 0 ? (
               <EmptyState
                 title="Your cart is empty"
@@ -94,7 +100,7 @@ export const CartPage: React.FC = () => {
                       <img
                         src={item.image || "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?q=80&w=1200&auto=format&fit=crop"}
                         alt={item.name}
-                        className="h-20 w-20 rounded-xl object-cover"
+                        className="h-16 w-16 rounded-xl object-cover sm:h-20 sm:w-20"
                       />
                       <div>
                         <p className="text-sm font-semibold text-foreground">
@@ -150,6 +156,11 @@ export const CartPage: React.FC = () => {
             <Link to="/checkout" className="btn-primary mt-6 h-11 w-full">
               Proceed to checkout
             </Link>
+            <WhatsAppButton
+              label="Checkout via WhatsApp"
+              className="mt-3 h-11 w-full justify-center text-sm"
+              message={whatsappMessage}
+            />
             <p className="mt-4 text-xs text-muted-foreground">
               Secure checkout with encrypted payments.
             </p>

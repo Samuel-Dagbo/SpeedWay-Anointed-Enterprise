@@ -1,4 +1,5 @@
 ﻿import React from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink } from "react-router-dom";
 import { Menu, Sun, Moon, ShoppingCart, User } from "lucide-react";
 import { useTheme } from "../../lib/theme";
@@ -11,11 +12,16 @@ export const PublicNavbar: React.FC = () => {
   const [isAuthed, setIsAuthed] = React.useState(
     Boolean(localStorage.getItem("auth_token"))
   );
+  const [role, setRole] = React.useState<string | null>(
+    localStorage.getItem("user_role")
+  );
   const [cartCount, setCartCount] = React.useState(0);
 
   React.useEffect(() => {
-    const handleStorage = () =>
+    const handleStorage = () => {
       setIsAuthed(Boolean(localStorage.getItem("auth_token")));
+      setRole(localStorage.getItem("user_role"));
+    };
     const handleCart = () => setCartCount(getCartCount());
     handleCart();
     window.addEventListener("storage", handleStorage);
@@ -85,7 +91,7 @@ export const PublicNavbar: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-md rounded-b-xl">
+    <header className="sticky top-0 z-40 border-b border-border bg-white/95 dark:bg-slate-900/95 backdrop-blur shadow-md rounded-b-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
         <Link to="/" className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
@@ -140,10 +146,13 @@ export const PublicNavbar: React.FC = () => {
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
           {isAuthed ? (
-            <div className="flex items-center gap-2 rounded-xl px-2 py-1 text-sm text-muted-foreground">
+            <Link
+              to="/account"
+              className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary"
+            >
               <User className="h-4 w-4" />
-              Admin
-            </div>
+              {role ? role[0].toUpperCase() + role.slice(1) : "Account"}
+            </Link>
           ) : (
             <Link to="/login" className="btn-primary">
               Sign In
@@ -162,77 +171,97 @@ export const PublicNavbar: React.FC = () => {
         </button>
       </div>
 
-      {mobileMenuOpen && (
-        <div
-          id="mobile-nav"
-          ref={mobileMenuRef}
-          className="md:hidden fixed inset-0 z-50 bg-background"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Mobile navigation"
-        >
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="text-base font-semibold">Menu</span>
-            <button
-              className="icon-btn"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-label="Close menu"
-            >
-              <Menu className="h-6 w-6 rotate-180" />
-            </button>
-          </div>
-          <nav className="flex flex-col gap-2 px-4 py-4">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.path}
-                to={link.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `rounded-xl px-3 py-2 text-sm font-medium ${
-                    isActive
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-            <div className="mt-2 flex items-center gap-2">
+      {mobileMenuOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div className="md:hidden fixed inset-0 z-[80]">
               <button
-                onClick={toggleTheme}
-                className="btn-outline h-9 px-3 text-sm"
-              >
-                {theme === "dark" ? "Light" : "Dark"} Mode
-              </button>
-              <Link to="/cart" className="btn-secondary h-9 text-sm">
-                Cart ({cartCount})
-              </Link>
-            </div>
-            {isAuthed ? (
-              <button
-                className="btn-destructive h-9 text-sm"
-                onClick={() => {
-                  localStorage.removeItem("auth_token");
-                  localStorage.removeItem("user_role");
-                  setIsAuthed(false);
-                  setMobileMenuOpen(false);
-                }}
-              >
-                Sign Out
-              </button>
-            ) : (
-              <Link
-                to="/login"
-                className="btn-primary h-9 text-sm"
+                className="absolute inset-0 bg-black/45"
                 onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu overlay"
+              />
+              <div
+                id="mobile-nav"
+                ref={mobileMenuRef}
+                className="relative ml-auto h-full w-full max-w-xs overflow-y-auto bg-white text-foreground shadow-2xl dark:bg-slate-900"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Mobile navigation"
               >
-                Sign In
-              </Link>
-            )}
-          </nav>
-        </div>
-      )}
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="text-base font-semibold">Menu</span>
+                  <button
+                    className="icon-btn"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-label="Close menu"
+                  >
+                    <Menu className="h-6 w-6 rotate-180" />
+                  </button>
+                </div>
+                <nav className="flex flex-col gap-3 px-4 py-4">
+                  {navLinks.map((link) => (
+                    <NavLink
+                      key={link.path}
+                      to={link.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-base font-semibold shadow-sm ${
+                          isActive
+                            ? "bg-secondary text-foreground"
+                            : "bg-white text-foreground hover:bg-secondary dark:bg-slate-800"
+                        }`
+                      }
+                    >
+                      {link.label}
+                    </NavLink>
+                  ))}
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  onClick={toggleTheme}
+                  className="btn-outline h-9 px-3 text-sm"
+                >
+                  {theme === "dark" ? "Light" : "Dark"} Mode
+                </button>
+                <Link to="/cart" className="btn-secondary h-9 text-sm">
+                  Cart ({cartCount})
+                </Link>
+              </div>
+              {isAuthed ? (
+                <Link
+                  to="/account"
+                  className="btn-outline h-9 text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Account
+                </Link>
+              ) : null}
+              {isAuthed ? (
+                <button
+                  className="btn-destructive h-9 text-sm"
+                  onClick={() => {
+                    localStorage.removeItem("auth_token");
+                    localStorage.removeItem("user_role");
+                    setIsAuthed(false);
+                    setRole(null);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Sign Out
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="btn-primary h-9 text-sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </Link>
+                  )}
+                </nav>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </header>
   );
 };

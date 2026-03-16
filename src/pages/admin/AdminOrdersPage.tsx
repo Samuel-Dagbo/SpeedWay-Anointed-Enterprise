@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Eye, Search } from "lucide-react";
 import api from "../../lib/api";
 import { Skeleton } from "../../components/ui/Skeleton";
@@ -15,6 +15,16 @@ type Order = {
   users?: { full_name: string; email: string };
 };
 
+type OrderReturn = {
+  id: number;
+  status: string;
+  reason?: string | null;
+  amount?: number | null;
+  created_at: string;
+  orders?: { id: number; total: number };
+  users?: { full_name?: string; email?: string };
+};
+
 const statusStyles: Record<string, string> = {
   pending: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
   completed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
@@ -29,16 +39,22 @@ export const AdminOrdersPage: React.FC = () => {
   const [selected, setSelected] = React.useState<Order | null>(null);
   const [query, setQuery] = React.useState("");
   const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null);
+  const [returns, setReturns] = React.useState<OrderReturn[]>([]);
   const { push } = useToast();
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<Order[]>("/orders");
+      const [res, returnsRes] = await Promise.all([
+        api.get<Order[]>("/orders"),
+        api.get<OrderReturn[]>("/orders/returns")
+      ]);
       setOrders(res.data);
+      setReturns(returnsRes.data || []);
       setLastUpdated(new Date());
     } catch {
       setOrders([]);
+      setReturns([]);
     } finally {
       setLoading(false);
     }
@@ -55,6 +71,16 @@ export const AdminOrdersPage: React.FC = () => {
       load();
     } catch {
       push("Failed to update order", "error");
+    }
+  };
+
+  const updateReturnStatus = async (id: number, status: string) => {
+    try {
+      await api.patch(`/orders/returns/${id}`, { status });
+      push("Return updated", "success");
+      load();
+    } catch {
+      push("Failed to update return", "error");
     }
   };
 
@@ -140,8 +166,7 @@ export const AdminOrdersPage: React.FC = () => {
                     <td className="text-right">
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          statusStyles[o.status] ||
-                          "bg-muted text-muted-foreground"
+                          statusStyles[o.status] || "bg-muted text-muted-foreground"
                         }`}
                       >
                         {o.status}
@@ -178,6 +203,58 @@ export const AdminOrdersPage: React.FC = () => {
         )}
       </div>
 
+      <div className="card p-4">
+        <h2 className="text-base font-semibold">Returns & refunds</h2>
+        {returns.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">No return requests.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="table text-sm">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Customer</th>
+                  <th>Reason</th>
+                  <th className="text-right">Amount</th>
+                  <th className="text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {returns.map((r) => (
+                  <tr key={r.id}>
+                    <td>#{r.orders?.id?.toString().padStart(4, "0")}</td>
+                    <td>
+                      <div>{r.users?.full_name || "—"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.users?.email}
+                      </div>
+                    </td>
+                    <td className="text-xs text-muted-foreground">
+                      {r.reason || "—"}
+                    </td>
+                    <td className="text-right">
+                      GHS {Number(r.amount || r.orders?.total || 0).toLocaleString()}
+                    </td>
+                    <td className="text-right">
+                      <select
+                        className="rounded-md border border-border bg-card px-2 py-1 text-xs"
+                        value={r.status}
+                        onChange={(e) => updateReturnStatus(r.id, e.target.value)}
+                      >
+                        <option value="requested">Requested</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="refunded">Refunded</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <Modal open={open} onClose={() => setOpen(false)} title="Order details">
         {selected ? (
           <div className="space-y-3 text-sm text-muted-foreground">
@@ -191,9 +268,7 @@ export const AdminOrdersPage: React.FC = () => {
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Customer
               </p>
-              <p className="font-semibold">
-                {selected.users?.full_name || "—"}
-              </p>
+              <p className="font-semibold">{selected.users?.full_name || "—"}</p>
               <p className="text-xs text-muted-foreground">
                 {selected.users?.email}
               </p>

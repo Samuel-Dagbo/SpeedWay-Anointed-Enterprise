@@ -70,6 +70,9 @@ export const AdminProductsPage: React.FC = () => {
   const [newModel, setNewModel] = React.useState("");
   const [newModelBrandId, setNewModelBrandId] = React.useState("");
   const [newYear, setNewYear] = React.useState("");
+  const [exporting, setExporting] = React.useState(false);
+  const [importing, setImporting] = React.useState(false);
+  const importInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -93,6 +96,42 @@ export const AdminProductsPage: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  const exportCsv = async () => {
+    try {
+      setExporting(true);
+      const res = await api.get("/products/export", { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "products.csv";
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      push("Failed to export products", "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const importCsv = async (file: File | null) => {
+    if (!file) return;
+    try {
+      setImporting(true);
+      const text = await file.text();
+      await api.post("/products/import", { csv: text });
+      push("Products imported", "success");
+      load();
+    } catch {
+      push("Failed to import products", "error");
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) {
+        importInputRef.current.value = "";
+      }
+    }
+  };
 
   React.useEffect(() => {
     load();
@@ -347,10 +386,29 @@ export const AdminProductsPage: React.FC = () => {
           </>
         }
         actions={
-          <button className="btn-primary h-10 text-sm" onClick={() => setOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add product
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => importCsv(e.target.files?.[0] || null)}
+            />
+            <button
+              className="btn-outline h-10 text-sm"
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+            >
+              Import CSV
+            </button>
+            <button className="btn-outline h-10 text-sm" onClick={exportCsv} disabled={exporting}>
+              Export CSV
+            </button>
+            <button className="btn-primary h-10 text-sm" onClick={() => setOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add product
+            </button>
+          </div>
         }
       />
 

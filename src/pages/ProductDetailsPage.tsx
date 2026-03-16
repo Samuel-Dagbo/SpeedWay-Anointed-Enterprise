@@ -26,6 +26,15 @@ type Product = {
   years?: { label: string };
 };
 
+type Review = {
+  id: number;
+  rating: number;
+  title?: string | null;
+  body: string;
+  created_at: string;
+  users?: { full_name?: string | null };
+};
+
 const fallbackImage =
   "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?q=80&w=1200&auto=format&fit=crop";
 
@@ -35,16 +44,27 @@ export const ProductDetailsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [recommended, setRecommended] = React.useState<Product[]>([]);
   const [recommendedLoading, setRecommendedLoading] = React.useState(true);
+  const [wishlistBusy, setWishlistBusy] = React.useState(false);
+  const [subscribeBusy, setSubscribeBusy] = React.useState(false);
+  const [reviews, setReviews] = React.useState<Review[]>([]);
+  const [reviewForm, setReviewForm] = React.useState({
+    rating: 5,
+    title: "",
+    body: ""
+  });
+  const [reviewLoading, setReviewLoading] = React.useState(true);
   const { push } = useToast();
+  const isAuthed = Boolean(localStorage.getItem("auth_token"));
 
   React.useEffect(() => {
     async function load() {
-      try {
-        const res = await api.get<Product>(`/products/${id}`);
-        setProduct(res.data);
-        setRecommendedLoading(true);
         try {
-          const listRes = await api.get<Product[]>("/products");
+          const res = await api.get<Product>(`/products/${id}`);
+          setProduct(res.data);
+          setRecommendedLoading(true);
+          setReviewLoading(true);
+          try {
+            const listRes = await api.get<Product[]>("/products");
           const all = Array.isArray(listRes.data) ? listRes.data : [];
           const filtered = all.filter((item) => item.id !== res.data.id);
           const related = filtered.filter((item) => {
@@ -67,15 +87,24 @@ export const ProductDetailsPage: React.FC = () => {
         } catch {
           setRecommended([]);
         } finally {
-          setRecommendedLoading(false);
+            setRecommendedLoading(false);
+          }
+          try {
+            const reviewRes = await api.get<Review[]>(`/reviews/product/${res.data.id}`);
+            setReviews(reviewRes.data || []);
+          } catch {
+            setReviews([]);
+          } finally {
+            setReviewLoading(false);
+          }
+        } catch {
+          setProduct(null);
+          setRecommended([]);
+          setReviews([]);
+        } finally {
+          setLoading(false);
         }
-      } catch {
-        setProduct(null);
-        setRecommended([]);
-      } finally {
-        setLoading(false);
       }
-    }
     if (id) load();
   }, [id]);
 
@@ -90,6 +119,62 @@ export const ProductDetailsPage: React.FC = () => {
     push("Added to cart", "success");
   };
 
+  const addToWishlist = async () => {
+    if (!product) return;
+    if (!isAuthed) {
+      push("Please sign in to save to wishlist", "error");
+      return;
+    }
+    try {
+      setWishlistBusy(true);
+      await api.post("/wishlist/items", { product_id: product.id });
+      push("Added to wishlist", "success");
+    } catch {
+      push("Already in wishlist or failed to save", "error");
+    } finally {
+      setWishlistBusy(false);
+    }
+  };
+
+  const notifyWhenInStock = async () => {
+    if (!product) return;
+    if (!isAuthed) {
+      push("Please sign in to get alerts", "error");
+      return;
+    }
+    try {
+      setSubscribeBusy(true);
+      await api.post("/stock-subscriptions", { product_id: product.id });
+      push("We'll notify you when it's back", "success");
+    } catch {
+      push("Alert already set or failed", "error");
+    } finally {
+      setSubscribeBusy(false);
+    }
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+    if (!isAuthed) {
+      push("Please sign in to leave a review", "error");
+      return;
+    }
+    try {
+      const res = await api.post<Review>("/reviews", {
+        product_id: product.id,
+        rating: reviewForm.rating,
+        title: reviewForm.title || null,
+        body: reviewForm.body
+      });
+      setReviews((prev) => [res.data, ...prev]);
+      setReviewForm({ rating: 5, title: "", body: "" });
+      push("Thanks for your review!", "success");
+    } catch {
+      push("Failed to submit review", "error");
+    }
+  };
+
   const gallery = product
     ? [product.car_image_url || null, product.image_url || fallbackImage].filter(Boolean)
     : [];
@@ -97,7 +182,7 @@ export const ProductDetailsPage: React.FC = () => {
   return (
     <div className="page-shell">
       <PublicNavbar />
-      <div className="mx-auto max-w-6xl px-4 pb-16 pt-20 md:px-6">
+      <div className="mx-auto max-w-6xl px-4 pb-16 pt-16 sm:pt-20 md:px-6">
         <Link to="/shop" className="text-xs text-muted-foreground hover:text-foreground">
           &larr; Back to shop
         </Link>
@@ -120,10 +205,10 @@ export const ProductDetailsPage: React.FC = () => {
                     <img
                       src={product.car_image_url}
                       alt={`${product.name} vehicle`}
-                      className="h-80 w-full object-cover"
+                      className="h-56 w-full object-cover sm:h-72 lg:h-80"
                     />
                   ) : (
-                    <div className="flex h-80 items-center justify-center bg-secondary text-sm text-muted-foreground">
+                    <div className="flex h-56 items-center justify-center bg-secondary text-sm text-muted-foreground sm:h-72 lg:h-80">
                       No vehicle image yet
                     </div>
                   )}
@@ -135,7 +220,7 @@ export const ProductDetailsPage: React.FC = () => {
                   <img
                     src={product.image_url || fallbackImage}
                     alt={`${product.name} part`}
-                    className="h-80 w-full object-cover"
+                    className="h-56 w-full object-cover sm:h-72 lg:h-80"
                   />
                   <div className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
                     Part photo
@@ -152,7 +237,7 @@ export const ProductDetailsPage: React.FC = () => {
                       <img
                         src={image as string}
                         alt={`${product.name} view ${idx + 1}`}
-                        className="h-24 w-full object-cover"
+                        className="h-20 w-full object-cover sm:h-24"
                       />
                     </div>
                   ))}
@@ -160,7 +245,7 @@ export const ProductDetailsPage: React.FC = () => {
               ) : null}
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-6 shadow-md">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-md sm:p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-2xl font-semibold text-foreground">
@@ -170,7 +255,7 @@ export const ProductDetailsPage: React.FC = () => {
                     {product.description || "Premium spare part ready to ship."}
                   </p>
                 </div>
-                <button className="icon-btn">
+                <button className="icon-btn" onClick={addToWishlist} disabled={wishlistBusy}>
                   <Heart className="h-4 w-4" />
                 </button>
               </div>
@@ -232,7 +317,17 @@ export const ProductDetailsPage: React.FC = () => {
                 >
                   Add to cart
                 </button>
-                <button className="btn-outline h-11">Buy now</button>
+                {product.quantity > 0 ? (
+                  <button className="btn-outline h-11">Buy now</button>
+                ) : (
+                  <button
+                    className="btn-outline h-11"
+                    onClick={notifyWhenInStock}
+                    disabled={subscribeBusy}
+                  >
+                    Notify me
+                  </button>
+                )}
               </div>
 
               <div className="mt-6 rounded-xl border border-border bg-background p-4 text-sm text-muted-foreground">
@@ -274,7 +369,7 @@ export const ProductDetailsPage: React.FC = () => {
                   <img
                     src={item.image_url || fallbackImage}
                     alt={item.name}
-                    className="h-36 w-full rounded-lg object-cover"
+                    className="h-32 w-full rounded-lg object-cover sm:h-36"
                   />
                   <div className="mt-3">
                     <div className="text-xs text-muted-foreground">
@@ -291,7 +386,7 @@ export const ProductDetailsPage: React.FC = () => {
                         {item.quantity > 0 ? "In stock" : "Unavailable"}
                       </span>
                     </div>
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <button
                         type="button"
                         className="btn-outline flex-1 text-center"
@@ -316,6 +411,79 @@ export const ProductDetailsPage: React.FC = () => {
                 </div>
               ))
             )}
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">Customer reviews</h2>
+              <p className="section-subtitle">Share your experience with this product.</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+            <div className="card p-4">
+              {reviewLoading ? (
+                <Skeleton className="h-40" />
+              ) : reviews.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No reviews yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="rounded-xl border border-border p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold">
+                          {review.users?.full_name || "Customer"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Rating: {review.rating}/5
+                      </div>
+                      {review.title ? (
+                        <div className="mt-2 text-sm font-semibold">{review.title}</div>
+                      ) : null}
+                      <p className="mt-1 text-sm text-muted-foreground">{review.body}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="card p-4">
+              <h3 className="text-sm font-semibold">Leave a review</h3>
+              <form onSubmit={submitReview} className="mt-4 space-y-3">
+                <select
+                  className="form-input"
+                  value={reviewForm.rating}
+                  onChange={(e) =>
+                    setReviewForm((prev) => ({ ...prev, rating: Number(e.target.value) }))
+                  }
+                >
+                  {[5, 4, 3, 2, 1].map((value) => (
+                    <option key={value} value={value}>
+                      {value} stars
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="form-input"
+                  placeholder="Title (optional)"
+                  value={reviewForm.title}
+                  onChange={(e) => setReviewForm((prev) => ({ ...prev, title: e.target.value }))}
+                />
+                <textarea
+                  className="form-input min-h-[120px]"
+                  placeholder="Write your review"
+                  value={reviewForm.body}
+                  onChange={(e) => setReviewForm((prev) => ({ ...prev, body: e.target.value }))}
+                />
+                <button className="btn-primary h-10 text-sm">Submit review</button>
+              </form>
+            </div>
           </div>
         </section>
       </div>
