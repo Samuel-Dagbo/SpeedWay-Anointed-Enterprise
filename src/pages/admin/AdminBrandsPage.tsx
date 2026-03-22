@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { Plus, Search, Layers } from "lucide-react";
+import { Plus, Search, Layers, Pencil, Trash2 } from "lucide-react";
 import api from "../../lib/api";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { Modal } from "../../components/ui/Modal";
@@ -13,6 +13,8 @@ export const AdminBrandsPage: React.FC = () => {
   const [items, setItems] = React.useState<Brand[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [open, setOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Brand | null>(null);
   const [name, setName] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null);
@@ -45,6 +47,39 @@ export const AdminBrandsPage: React.FC = () => {
       load();
     } catch {
       push("Failed to create brand", "error");
+    }
+  };
+
+  const onOpenEdit = (brand: Brand) => {
+    setEditing(brand);
+    setName(brand.name);
+    setEditOpen(true);
+  };
+
+  const onUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    try {
+      await api.put(`/brands/${editing.id}`, { name });
+      push("Brand updated", "success");
+      setEditOpen(false);
+      setEditing(null);
+      setName("");
+      load();
+    } catch {
+      push("Failed to update brand", "error");
+    }
+  };
+
+  const onDelete = async (id: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this brand? This may affect products using this brand.");
+    if (!confirmed) return;
+    try {
+      await api.delete(`/brands/${id}`);
+      push("Brand deleted", "success");
+      load();
+    } catch {
+      push("Failed to delete brand", "error");
     }
   };
 
@@ -107,13 +142,31 @@ export const AdminBrandsPage: React.FC = () => {
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((c) => (
               <div key={c.id} className="card p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Layers className="h-5 w-5" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Layers className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">OEM partner</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">OEM partner</p>
+                  <div className="flex gap-1">
+                    <button
+                      className="btn-outline h-9 w-9 p-0"
+                      onClick={() => onOpenEdit(c)}
+                      title="Edit"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      className="btn-destructive h-9 w-9 p-0"
+                      onClick={() => onDelete(c.id)}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -122,8 +175,21 @@ export const AdminBrandsPage: React.FC = () => {
         )}
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Add brand">
+      <Modal open={open} onClose={() => { setOpen(false); setName(""); }} title="Add brand">
         <form onSubmit={onCreate} className="space-y-4">
+          <input
+            required
+            className="form-input"
+            placeholder="Brand name (e.g., Toyota)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <button className="btn-primary h-11 w-full">Create</button>
+        </form>
+      </Modal>
+
+      <Modal open={editOpen} onClose={() => { setEditOpen(false); setEditing(null); setName(""); }} title="Edit brand">
+        <form onSubmit={onUpdate} className="space-y-4">
           <input
             required
             className="form-input"
@@ -131,7 +197,7 @@ export const AdminBrandsPage: React.FC = () => {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <button className="btn-primary h-11 w-full">Create</button>
+          <button className="btn-primary h-11 w-full">Save changes</button>
         </form>
       </Modal>
     </div>
