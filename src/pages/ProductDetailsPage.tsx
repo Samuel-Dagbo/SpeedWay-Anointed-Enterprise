@@ -1,12 +1,13 @@
 import React from "react";
 import { useParams, Link } from "react-router-dom";
-import { ShieldCheck, Truck, CheckCircle2, Heart, ShoppingCart } from "lucide-react";
+import { ShieldCheck, Truck, CheckCircle2, Heart, ShoppingCart, Loader2 } from "lucide-react";
 import api from "../lib/api";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
 import { PublicNavbar } from "../components/layout/PublicNavbar";
 import { addToCart } from "../lib/cart";
 import { PublicFooterCTA } from "../components/layout/PublicFooterCTA";
+import { PageLoading } from "../components/ui/LoadingSpinner";
 
 type Product = {
   id: string;
@@ -188,10 +189,7 @@ export const ProductDetailsPage: React.FC = () => {
         </Link>
 
         {loading ? (
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <Skeleton className="h-80 rounded-xl" />
-            <Skeleton className="h-80 rounded-xl" />
-          </div>
+          <PageLoading text="Loading product..." />
         ) : !product ? (
           <div className="mt-6 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-md">
             Product not found.
@@ -201,11 +199,12 @@ export const ProductDetailsPage: React.FC = () => {
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
-                  {product.car_image_url ? (
+                    {product.car_image_url ? (
                     <img
                       src={product.car_image_url}
                       alt={`${product.name} vehicle`}
                       className="h-56 w-full object-cover sm:h-72 lg:h-80"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="flex h-56 items-center justify-center bg-secondary text-sm text-muted-foreground sm:h-72 lg:h-80">
@@ -221,6 +220,7 @@ export const ProductDetailsPage: React.FC = () => {
                     src={product.image_url || fallbackImage}
                     alt={`${product.name} part`}
                     className="h-56 w-full object-cover sm:h-72 lg:h-80"
+                    loading="lazy"
                   />
                   <div className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
                     Part photo
@@ -238,6 +238,7 @@ export const ProductDetailsPage: React.FC = () => {
                         src={image as string}
                         alt={`${product.name} view ${idx + 1}`}
                         className="h-20 w-full object-cover sm:h-24"
+                        loading="lazy"
                       />
                     </div>
                   ))}
@@ -370,6 +371,7 @@ export const ProductDetailsPage: React.FC = () => {
                     src={item.image_url || fallbackImage}
                     alt={item.name}
                     className="h-32 w-full rounded-lg object-cover sm:h-36"
+                    loading="lazy"
                   />
                   <div className="mt-3">
                     <div className="text-xs text-muted-foreground">

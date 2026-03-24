@@ -1,12 +1,13 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Star, Plus } from "lucide-react";
+import { Star, Plus, Loader2 } from "lucide-react";
 import { PublicNavbar } from "../components/layout/PublicNavbar";
 import api from "../lib/api";
 import { useToast } from "../components/ui/Toast";
 import { PublicFooterCTA } from "../components/layout/PublicFooterCTA";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
+import { PageLoading } from "../components/ui/LoadingSpinner";
 
 type Review = {
   id: number;
@@ -24,6 +25,7 @@ export const ReviewsPage: React.FC = () => {
   const [title, setTitle] = React.useState("");
   const [body, setBody] = React.useState("");
   const [showForm, setShowForm] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
   const { push } = useToast();
   const navigate = useNavigate();
   const isAuthed = Boolean(localStorage.getItem("auth_token"));
@@ -45,13 +47,14 @@ export const ReviewsPage: React.FC = () => {
     load();
   }, [load]);
 
-  const onSubmit = async (e: React.FormEvent) => {
+const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthed) {
       push("Please sign in to add a review.", "error");
       navigate("/login");
       return;
     }
+    setSubmitting(true);
     try {
       await api.post("/reviews", { rating, title: title || null, body });
       push("Review submitted", "success");
@@ -64,6 +67,8 @@ export const ReviewsPage: React.FC = () => {
       const message =
         (err as any)?.response?.data?.error || "Failed to submit review.";
       push(message, "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -99,7 +104,7 @@ export const ReviewsPage: React.FC = () => {
           <div className={`grid gap-6 ${showForm ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,0.45fr)]" : "grid-cols-1"}`}>
             <div className="card p-6">
               {loading ? (
-                <div className="text-sm text-muted-foreground">Loading reviews...</div>
+                <PageLoading text="Loading reviews..." />
               ) : safeReviews.length === 0 ? (
                 <EmptyState
                   title="No reviews yet"
@@ -174,8 +179,15 @@ export const ReviewsPage: React.FC = () => {
                       placeholder="Tell us about your experience..."
                     />
                   </div>
-                  <button className="btn-primary h-10 w-full" type="submit">
-                    Submit review
+<button className="btn-primary h-10 w-full" type="submit" disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit review"
+                    )}
                   </button>
                 </form>
               </aside>

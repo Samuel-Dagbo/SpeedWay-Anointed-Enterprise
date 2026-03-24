@@ -16,7 +16,10 @@ export default defineConfig({
       "/reports": "http://localhost:4000",
       "/users": "http://localhost:4000",
       "/years": "http://localhost:4000",
-      "/reviews": "http://localhost:4000"
+      "/reviews": "http://localhost:4000",
+      "/inventory": "http://localhost:4000",
+      "/stock-subscriptions": "http://localhost:4000",
+      "/audit-logs": "http://localhost:4000"
     }
   }
 });
