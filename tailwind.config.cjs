@@ -99,6 +99,8 @@ module.exports = {
         'shimmer': 'shimmer 2s infinite',
         'bounce-subtle': 'bounceSubtle 1s ease-in-out infinite',
         'spin-slow': 'spin 2s linear infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'float-delayed': 'float 6s ease-in-out 2s infinite',
       },
       keyframes: {
         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
@@ -113,6 +115,7 @@ module.exports = {
         pulseSoft: { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0.6' } },
         shimmer: { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
         bounceSubtle: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-3px)' } },
+        float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
