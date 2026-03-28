@@ -1,14 +1,14 @@
 import React from "react";
-import { Plus, Search, Tag, Pencil, Trash2, ImageIcon, Upload, Loader2 } from "lucide-react";
+import { Plus, Search, Tag, Pencil, Trash2, ImageIcon, Loader2 } from "lucide-react";
 import api from "../../lib/api";
-import { Skeleton } from "../../components/ui/Skeleton";
 import { Modal } from "../../components/ui/Modal";
 import { useToast } from "../../components/ui/Toast";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { PageLoading } from "../../components/ui/LoadingSpinner";
+import { ImageUploader } from "../../components/ui/ImageUploader";
 
-type Category = { id: string; name: string; image_url?: string | null };
+type Category = { id: string; name: string; image_url?: string | null; show_by_brand?: boolean };
 
 const fallbackImage = "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&h=400&fit=crop";
 
@@ -21,7 +21,7 @@ export const AdminCategoriesPage: React.FC = () => {
   const [editing, setEditing] = React.useState<Category | null>(null);
   const [name, setName] = React.useState("");
   const [imageUrl, setImageUrl] = React.useState("");
-  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const [showByBrand, setShowByBrand] = React.useState(true);
   const [query, setQuery] = React.useState("");
   const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null);
   const { push } = useToast();
@@ -46,14 +46,14 @@ export const AdminCategoriesPage: React.FC = () => {
   const resetForm = () => {
     setName("");
     setImageUrl("");
-    setImagePreview(null);
+    setShowByBrand(true);
   };
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post("/categories", { name, image_url: imageUrl || null });
+      await api.post("/categories", { name, image_url: imageUrl || null, show_by_brand: showByBrand });
       push("Category created", "success");
       resetForm();
       setOpen(false);
@@ -69,7 +69,7 @@ export const AdminCategoriesPage: React.FC = () => {
     setEditing(category);
     setName(category.name);
     setImageUrl(category.image_url || "");
-    setImagePreview(category.image_url || null);
+    setShowByBrand(category.show_by_brand !== false);
     setEditOpen(true);
   };
 
@@ -78,7 +78,7 @@ export const AdminCategoriesPage: React.FC = () => {
     if (!editing) return;
     setSubmitting(true);
     try {
-      await api.put(`/categories/${editing.id}`, { name, image_url: imageUrl || null });
+      await api.put(`/categories/${editing.id}`, { name, image_url: imageUrl || null, show_by_brand: showByBrand });
       push("Category updated", "success");
       setEditOpen(false);
       setEditing(null);
@@ -106,15 +106,6 @@ export const AdminCategoriesPage: React.FC = () => {
     }
   };
 
-  const handleImageUrlChange = (url: string) => {
-    setImageUrl(url);
-    if (url) {
-      setImagePreview(url);
-    } else {
-      setImagePreview(null);
-    }
-  };
-
   const filtered = items.filter((c) =>
     c.name.toLowerCase().includes(query.toLowerCase())
   );
@@ -139,10 +130,10 @@ export const AdminCategoriesPage: React.FC = () => {
       />
 
       <div className="card p-4">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-          <Search className="h-4 w-4" />
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
-            className="w-full bg-transparent outline-none"
+            className="input pl-11"
             placeholder="Search categories..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -230,31 +221,30 @@ export const AdminCategoriesPage: React.FC = () => {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium">Image URL (optional)</label>
-            <div className="space-y-3">
-              <input
-                className="form-input"
-                placeholder="https://example.com/image.jpg"
-                value={imageUrl}
-                onChange={(e) => handleImageUrlChange(e.target.value)}
-              />
-              {imagePreview && (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
-                  <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleImageUrlChange("")}
-                    className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Paste an image URL or leave empty to use default placeholder.
-              </p>
+          <ImageUploader
+            value={imageUrl}
+            onChange={setImageUrl}
+            endpoint="/categories/upload"
+            label="Image (optional)"
+          />
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
+            <div>
+              <p className="font-medium text-foreground">Show by brand</p>
+              <p className="text-xs text-muted-foreground">When enabled, products are organized by brand. Disable for general categories.</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowByBrand(!showByBrand)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                showByBrand ? "bg-primary" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  showByBrand ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
           </div>
           <button className="btn-primary h-11 w-full" disabled={submitting}>
             {submitting ? (
@@ -279,28 +269,30 @@ export const AdminCategoriesPage: React.FC = () => {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium">Image URL (optional)</label>
-            <div className="space-y-3">
-              <input
-                className="form-input"
-                placeholder="https://example.com/image.jpg"
-                value={imageUrl}
-                onChange={(e) => handleImageUrlChange(e.target.value)}
-              />
-              {imagePreview && (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
-                  <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleImageUrlChange("")}
-                    className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
+          <ImageUploader
+            value={imageUrl}
+            onChange={setImageUrl}
+            endpoint="/categories/upload"
+            label="Image (optional)"
+          />
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
+            <div>
+              <p className="font-medium text-foreground">Show by brand</p>
+              <p className="text-xs text-muted-foreground">When enabled, products are organized by brand. Disable for general categories.</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowByBrand(!showByBrand)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                showByBrand ? "bg-primary" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  showByBrand ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
           </div>
           <button className="btn-primary h-11 w-full" disabled={submitting}>
             {submitting ? (

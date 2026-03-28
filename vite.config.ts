@@ -1,26 +1,27 @@
-﻿import { defineConfig } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+
+const apiUrl = process.env.VITE_API_URL || "http://localhost:4000";
 
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      "/auth": "http://localhost:4000",
-      "/products": "http://localhost:4000",
-      "/orders": "http://localhost:4000",
-      "/sales": "http://localhost:4000",
-      "/categories": "http://localhost:4000",
-      "/brands": "http://localhost:4000",
-      "/models": "http://localhost:4000",
-      "/reports": "http://localhost:4000",
-      "/users": "http://localhost:4000",
-      "/years": "http://localhost:4000",
-      "/reviews": "http://localhost:4000",
-      "/inventory": "http://localhost:4000",
-      "/stock-subscriptions": "http://localhost:4000",
-      "/audit-logs": "http://localhost:4000"
+      "/auth": apiUrl,
+      "/products": apiUrl,
+      "/orders": apiUrl,
+      "/sales": apiUrl,
+      "/categories": apiUrl,
+      "/brands": apiUrl,
+      "/models": apiUrl,
+      "/reports": apiUrl,
+      "/users": apiUrl,
+      "/years": apiUrl,
+      "/reviews": apiUrl,
+      "/inventory": apiUrl,
+      "/stock-subscriptions": apiUrl,
+      "/audit-logs": apiUrl
     }
   }
 });
-

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://speedwayanointedent.com/sitemap.xml
+
+google-site-verification=PLo4KtHOb8E4ZxkRNSRXjPldT7NDot6wadl5FVqQmj0

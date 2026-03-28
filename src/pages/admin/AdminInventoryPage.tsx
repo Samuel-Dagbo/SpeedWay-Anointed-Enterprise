@@ -1,260 +1,368 @@
-﻿import React from "react";
-import { Edit3, Search, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { Search, Edit3, Loader2, ChevronLeft, ChevronRight, Filter, X, Package, AlertTriangle, CheckCircle, TrendingUp, RefreshCw } from "lucide-react";
 import api from "../../lib/api";
-import { Skeleton } from "../../components/ui/Skeleton";
-import { Modal } from "../../components/ui/Modal";
-import { useToast } from "../../components/ui/Toast";
+import { fetchAllProducts } from "../../lib/productsApi";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { Modal } from "../../components/ui/Modal";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { PageLoading } from "../../components/ui/LoadingSpinner";
+import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Input, Select } from "../../components/ui/Input";
+import { Badge } from "../../components/ui/Badge";
+import { StatCard } from "../../components/ui/StatCard";
+import { useSearch } from "../../lib/useSearch";
+import type { Product } from "../../types/sale";
 
-type Product = {
-  id: string;
-  name: string;
-  quantity: number;
-  status?: string;
-  image_url?: string | null;
-  categories?: { name: string };
-  brands?: { name: string };
-};
-
-const fallbackImage =
-  "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?q=80&w=600&auto=format&fit=crop";
+const PRODUCTS_PER_PAGE = 50;
 
 export const AdminInventoryPage: React.FC = () => {
-  const [items, setItems] = React.useState<Product[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [adjustOpen, setAdjustOpen] = React.useState(false);
-  const [selected, setSelected] = React.useState<Product | null>(null);
-  const [query, setQuery] = React.useState("");
-  const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null);
-  const { push } = useToast();
-  const navigate = useNavigate();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [editQuantity, setEditQuantity] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterBrand, setFilterBrand] = useState("");
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const [adjustDelta, setAdjustDelta] = React.useState("");
-  const [adjustReason, setAdjustReason] = React.useState("restock");
-  const [adjustNote, setAdjustNote] = React.useState("");
+  const searchFields = useMemo(() => [
+    'name',
+    'categories.name',
+    'brands.name'
+  ] as (keyof Product | string)[], []);
 
-  React.useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get<Product[]>("/products");
-        setItems(Array.isArray(res.data) ? res.data : []);
-        setLastUpdated(new Date());
-      } catch {
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
+  const {
+    query: searchQuery,
+    setQuery: setSearchQuery,
+    items: searchedProducts,
+    clearSearch
+  } = useSearch<Product>(allProducts, {
+    fields: searchFields,
+    debounceMs: 200,
+    keepResultsOnEmpty: true
+  });
+
+  // Apply category/brand filters on top of search
+  const filteredProducts = useMemo(() => {
+    let result = searchedProducts;
+    if (filterCategory) {
+      result = result.filter(p => p.categories?.id === filterCategory);
     }
-    load();
+    if (filterBrand) {
+      result = result.filter(p => p.brands?.id === filterBrand);
+    }
+    return result;
+  }, [searchedProducts, filterCategory, filterBrand]);
+
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice((page - 1) * PRODUCTS_PER_PAGE, page * PRODUCTS_PER_PAGE);
+
+  // Load all products + reference data
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [products, catRes, brandRes] = await Promise.all([
+        fetchAllProducts({ status: 'active' }),
+        api.get("/categories"),
+        api.get("/brands")
+      ]);
+
+      setAllProducts(products);
+      setCategories(Array.isArray(catRes.data) ? catRes.data : []);
+      setBrands(Array.isArray(brandRes.data) ? brandRes.data : []);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('[Inventory] Load failed:', err);
+      setAllProducts([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const filtered = items.filter((item) =>
-    item.name.toLowerCase().includes(query.toLowerCase())
-  );
-  const lowStock = items.filter((item) => item.quantity <= 5).slice(0, 5);
+  useEffect(() => { load(); }, [load]);
 
-  const onAdjust = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selected) return;
+  useEffect(() => { setPage(1); }, [searchQuery, filterCategory, filterBrand]);
+
+  const openEdit = (item: Product) => {
+    setEditing(item);
+    setEditQuantity(String(item.quantity));
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSaving(true);
     try {
-      await api.post("/inventory/adjust", {
-        product_id: selected.id,
-        delta: Number(adjustDelta),
-        reason: adjustReason,
-        note: adjustNote || null
-      });
-      push("Inventory adjusted", "success");
-      setAdjustOpen(false);
-      setSelected(null);
-      setAdjustDelta("");
-      setAdjustReason("restock");
-      setAdjustNote("");
-      const res = await api.get<Product[]>("/products");
-      setItems(res.data);
-    } catch {
-      push("Failed to update inventory", "error");
+      await api.put(`/products/${editing.id}`, { quantity: Number(editQuantity) });
+      setAllProducts(prev => prev.map(item =>
+        item.id === editing.id ? { ...item, quantity: Number(editQuantity) } : item
+      ));
+      setEditOpen(false);
+      setEditing(null);
+    } catch (err) {
+      console.error("Failed to update:", err);
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const clearFilters = () => {
+    clearSearch();
+    setFilterCategory("");
+    setFilterBrand("");
+    setPage(1);
+  };
+
+  const hasFilters = !!(searchQuery || filterCategory || filterBrand);
+
+  const lowStock = allProducts.filter((item) => item.quantity <= 5 && item.quantity > 0).length;
+  const outOfStock = allProducts.filter((item) => item.quantity === 0).length;
+  const inStock = allProducts.filter((item) => item.quantity > 5).length;
+
+  const startItem = filteredProducts.length > 0 ? (page - 1) * PRODUCTS_PER_PAGE + 1 : 0;
+  const endItem = Math.min(page * PRODUCTS_PER_PAGE, filteredProducts.length);
+
+  const getStockStatus = (quantity: number) => {
+    if (quantity === 0) return { variant: 'destructive' as const, label: 'Out of Stock' };
+    if (quantity <= 5) return { variant: 'warning' as const, label: 'Low Stock' };
+    return { variant: 'success' as const, label: 'In Stock' };
   };
 
   return (
     <div className="space-y-6 text-foreground">
       <PageHeader
         title="Inventory"
-        subtitle="Track stock levels and restock priorities."
-        meta={
-          <>
-            {items.length} items
-            {lastUpdated ? ` · Updated ${lastUpdated.toLocaleTimeString()}` : ""}
-          </>
-        }
+        subtitle="Manage product stock levels and track inventory"
+        meta={<>{allProducts.length} products loaded</>}
         actions={
-          <button className="btn-primary" onClick={() => navigate("/admin/products")}>
-            Add item
-          </button>
+          <Button variant="primary" onClick={load}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
         }
       />
 
-      {lowStock.length > 0 ? (
-        <div className="card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold">Low stock alerts</div>
-              <div className="text-xs text-muted-foreground">
-                Reorder suggestions for fast-moving items.
-              </div>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {lowStock.length} items
-            </span>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {lowStock.map((item) => (
-              <div key={item.id} className="rounded-xl border border-border p-3">
-                <div className="text-sm font-semibold">{item.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Stock: {item.quantity}
+      {/* Stat cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Total Products" value={allProducts.length} subtitle="In catalog" icon={<Package className="h-5 w-5" />} variant="primary" />
+        <StatCard title="In Stock" value={inStock} subtitle="Available items" icon={<CheckCircle className="h-5 w-5" />} variant="success" />
+        <StatCard title="Low Stock" value={lowStock} subtitle="Need restocking" icon={<TrendingUp className="h-5 w-5" />} variant="warning" />
+        <StatCard title="Out of Stock" value={outOfStock} subtitle="Unavailable" icon={<AlertTriangle className="h-5 w-5" />} variant="destructive" />
+      </div>
+
+      {/* Alert banner */}
+      {(outOfStock > 0 || lowStock > 0) && (
+        <Card className="bg-gradient-to-r from-destructive/5 via-warning/5 to-success/5 border-destructive/20">
+          <div className="flex flex-wrap items-center gap-4">
+            {outOfStock > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
                 </div>
-                <button
-                  className="btn-outline mt-3 h-8 text-xs"
-                  onClick={() => {
-                    setSelected(item);
-                    setAdjustDelta("");
-                    setAdjustReason("restock");
-                    setAdjustNote("");
-                    setAdjustOpen(true);
-                  }}
-                >
-                  Create restock
-                </button>
+                <div>
+                  <p className="text-sm font-semibold text-destructive">Out of stock: {outOfStock}</p>
+                  <p className="text-xs text-muted-foreground">Immediate attention needed</p>
+                </div>
               </div>
-            ))}
+            )}
+            {lowStock > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/10">
+                  <TrendingUp className="h-4 w-4 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-warning">Low stock: {lowStock}</p>
+                  <p className="text-xs text-muted-foreground">Consider restocking soon</p>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      ) : null}
+        </Card>
+      )}
 
-      <div className="card p-4">
-        <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-          <Search className="h-4 w-4" />
-          <input
-            className="w-full bg-transparent outline-none"
-            placeholder="Search inventory..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        {query ? (
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <span className="rounded-full border border-border bg-background px-2.5 py-1">
-              Search: {query}
-            </span>
-          </div>
-        ) : null}
-
-        {loading ? (
-          <PageLoading text="Loading inventory..." />
-        ) : filtered.length === 0 ? (
-          <div className="mt-6">
-            <EmptyState
-              title="No inventory items found"
-              description="Try adjusting your search or add new products to stock."
-              action={
-                <button className="btn-primary h-10 text-sm" onClick={() => navigate("/admin/products")}>
-                  Add product
-                </button>
-              }
+      {/* Search + Filters */}
+      <Card padding="md">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              className="input pl-11 pr-10"
+              placeholder="Search products by name, category, brand..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="mt-6 overflow-x-auto">
-            <table className="table text-sm">
+          <Button variant={showFilters || hasFilters ? "primary" : "outline"} onClick={() => setShowFilters(!showFilters)}>
+            <Filter className="mr-2 h-4 w-4" />
+            Filters
+            {(filterCategory || filterBrand) && (
+              <span className="ml-2 rounded-full bg-white/20 px-1.5 py-0.5 text-xs">
+                {(filterCategory ? 1 : 0) + (filterBrand ? 1 : 0)}
+              </span>
+            )}
+          </Button>
+        </div>
+
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex flex-wrap items-center gap-3">
+              <Select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                options={[{ value: "", label: "All Categories" }, ...categories.map(c => ({ value: c.id, label: c.name }))]}
+              />
+              <Select
+                value={filterBrand}
+                onChange={(e) => setFilterBrand(e.target.value)}
+                options={[{ value: "", label: "All Brands" }, ...brands.map(b => ({ value: b.id, label: b.name }))]}
+              />
+              {hasFilters && (
+                <Button variant="ghost" onClick={clearFilters} className="text-destructive hover:text-destructive">
+                  <X className="mr-1.5 h-4 w-4" /> Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Table */}
+      {loading && allProducts.length === 0 ? (
+        <Card className="p-8">
+          <PageLoading text="Loading inventory..." />
+        </Card>
+      ) : paginatedProducts.length === 0 ? (
+        <Card className="p-12">
+          <EmptyState
+            title="No products found"
+            description={hasFilters ? "Try adjusting your search or filters." : "Add products to your inventory."}
+          />
+        </Card>
+      ) : (
+        <>
+          <div className="table-container">
+            <table className="table">
               <thead>
                 <tr>
-                  <th>Image</th>
-                  <th>Name</th>
-                  <th>Quantity</th>
+                  <th className="pl-5">Product</th>
                   <th>Category</th>
                   <th>Brand</th>
-                  <th className="text-right">Actions</th>
+                  <th className="text-center">Quantity</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-right pr-5">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <img
-                        src={item.image_url || fallbackImage}
-                        alt={item.name}
-                        className="h-10 w-10 rounded-md object-cover"
-                      />
-                    </td>
-                    <td className="font-medium">{item.name}</td>
-                    <td>{item.quantity}</td>
-                    <td>{item.categories?.name || "—"}</td>
-                    <td>{item.brands?.name || "—"}</td>
-                    <td className="text-right">
-                      <button
-                        className="btn-outline h-8 px-3 text-xs"
-                        onClick={() => {
-                          setSelected(item);
-                          setAdjustDelta("");
-                          setAdjustReason("restock");
-                          setAdjustNote("");
-                          setAdjustOpen(true);
-                        }}
-                      >
-                        <Edit3 className="mr-1 h-4 w-4" />
-                        Adjust
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {paginatedProducts.map((item, index) => {
+                  const status = getStockStatus(item.quantity);
+                  return (
+                    <tr key={item.id}>
+                      <td className="pl-5">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <Package className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <span className="font-medium line-clamp-1 max-w-[200px]">{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="text-muted-foreground">{item.categories?.name || "\u2014"}</td>
+                      <td className="text-muted-foreground">{item.brands?.name || "\u2014"}</td>
+                      <td className="text-center"><span className="font-semibold">{item.quantity}</span></td>
+                      <td className="text-center"><Badge variant={status.variant}>{status.label}</Badge></td>
+                      <td className="text-right pr-5">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
+                          <Edit3 className="mr-1.5 h-4 w-4" /> Edit
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
 
-      <Modal
-        open={adjustOpen}
-        onClose={() => setAdjustOpen(false)}
-        title="Adjust stock"
-      >
-        <form onSubmit={onAdjust} className="space-y-4">
-          <input
-            disabled
-            className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground"
-            value={selected?.name || ""}
-          />
-          <input
-            required
-            type="number"
-            className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground outline-none"
-            placeholder="Adjustment (e.g. 5 or -3)"
-            value={adjustDelta}
-            onChange={(e) => setAdjustDelta(e.target.value)}
-          />
-          <select
-            className="form-input"
-            value={adjustReason}
-            onChange={(e) => setAdjustReason(e.target.value)}
-          >
-            <option value="restock">Restock</option>
-            <option value="damage">Damaged stock</option>
-            <option value="correction">Stock correction</option>
-            <option value="transfer">Transfer</option>
-          </select>
-          <input
-            className="form-input"
-            placeholder="Note (optional)"
-            value={adjustNote}
-            onChange={(e) => setAdjustNote(e.target.value)}
-          />
-          <button className="btn-primary w-full">Update quantity</button>
-        </form>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Card className="flex flex-col items-center justify-between gap-4 p-4 sm:flex-row">
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-medium text-foreground">{startItem}</span> to{" "}
+                <span className="font-medium text-foreground">{endItem}</span> of{" "}
+                <span className="font-medium text-foreground">{filteredProducts.length}</span>
+                {hasFilters && <span> (filtered from {allProducts.length})</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 5) pageNum = i + 1;
+                    else if (page <= 3) pageNum = i + 1;
+                    else if (page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                    else pageNum = page - 2 + i;
+                    return (
+                      <Button key={pageNum} variant={page === pageNum ? "primary" : "ghost"} size="sm" onClick={() => setPage(pageNum)} className="w-9">
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Edit modal */}
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Quantity">
+        <div className="space-y-5">
+          {editing && (
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/30 p-4">
+              <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                {editing.image_url ? (
+                  <img src={editing.image_url} alt={editing.name} className="h-full w-full object-cover" />
+                ) : (
+                  <Package className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <p className="font-semibold">{editing.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {editing.categories?.name || "\u2014"} {editing.brands?.name ? `\u2022 ${editing.brands.name}` : ""}
+                </p>
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="mb-2 block text-sm font-medium">Quantity</label>
+            <Input type="number" min="0" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} autoFocus />
+          </div>
+          <Button variant="primary" onClick={saveEdit} disabled={saving} className="w-full">
+            {saving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>) : 'Save Changes'}
+          </Button>
+        </div>
       </Modal>
     </div>
   );
 };
+
+export default AdminInventoryPage;
