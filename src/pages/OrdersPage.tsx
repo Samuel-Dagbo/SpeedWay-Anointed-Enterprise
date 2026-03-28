@@ -27,8 +27,9 @@ export const OrdersPage: React.FC = () => {
   React.useEffect(() => {
     async function load() {
       try {
-        const res = await api.get<Order[]>("/orders/my");
-        setOrders(res.data || []);
+        const res = await api.get("/orders/my");
+        const ordersData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setOrders(ordersData);
       } catch {
         setOrders([]);
       } finally {

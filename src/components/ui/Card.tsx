@@ -19,26 +19,26 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const variants = {
-    default: 'border border-border/60 shadow-soft',
-    elevated: 'shadow-soft-lg',
-    glass: 'border border-white/20 bg-white/70 backdrop-blur-xl dark:bg-slate-900/70 dark:border-slate-700/30',
-    bordered: 'border border-border',
+    default: 'border border-border/60 shadow-card',
+    elevated: 'shadow-lg border-0',
+    glass: 'border border-white/15 bg-white/60 backdrop-blur-xl dark:bg-slate-900/60 dark:border-slate-700/20',
+    bordered: 'border border-border shadow-sm',
   };
 
   const paddings = {
     none: '',
     sm: 'p-4',
-    md: 'p-5',
-    lg: 'p-6',
+    md: 'p-5 sm:p-6',
+    lg: 'p-6 sm:p-8',
   };
 
   return (
     <div
       className={classNames(
-        'rounded-2xl bg-card text-card-foreground transition-all duration-300',
+        'rounded-2xl bg-card text-card-foreground transition-all duration-200',
         variants[variant],
         paddings[padding],
-        hover && 'hover:shadow-soft-lg hover:-translate-y-0.5 hover:border-border cursor-pointer',
+        hover && 'hover:shadow-card-hover hover:border-border/80 hover:-translate-y-0.5 cursor-pointer',
         className
       )}
       {...props}
@@ -110,7 +110,7 @@ export const CardFooter: React.FC<CardFooterProps> = ({
   ...props
 }) => (
   <div
-    className={classNames('flex items-center pt-4 border-t border-border', className)}
+    className={classNames('flex items-center pt-4 border-t border-border/60', className)}
     {...props}
   >
     {children}

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle, Shield, Truck, Wrench, BadgeCheck, Clock, Star, Users, MapPin, ArrowRight, Search, Car, Phone, Mail, ChevronRight, Sparkles, ArrowDown } from "lucide-react";
+import { CheckCircle, Shield, Truck, Wrench, BadgeCheck, Clock, Star, Users, MapPin, ArrowRight, Search, Car, Phone, Mail, ChevronRight, Sparkles, ArrowDown, Paintbrush } from "lucide-react";
 import { PublicNavbar } from "../components/layout/PublicNavbar";
 import { WhatsAppButton } from "../components/ui/WhatsAppButton";
 import { PublicFooterCTA } from "../components/layout/PublicFooterCTA";
@@ -56,77 +56,97 @@ export const LandingPage: React.FC = () => {
       <PublicNavbar />
       <main>
         <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800">
+          {/* Background decorations */}
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=2000')] bg-cover bg-center opacity-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/60 to-transparent" />
-          
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-          
-          <div className="relative mx-auto max-w-7xl px-4">
-            <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-              <div className="text-center lg:text-left animate-fade-in-up">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="grid gap-10 lg:gap-12 lg:grid-cols-2 lg:items-center">
+              {/* Left: text content */}
+              <div className="text-center lg:text-left animate-fade-in-up pt-6 pb-6 sm:pt-8 sm:pb-8 lg:pt-12 lg:pb-16">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 mb-6">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                   <span className="text-sm font-medium text-primary-foreground">Premium Auto Parts</span>
                 </div>
-                
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
+
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight tracking-tight">
                   Premium Auto Parts for Every Make & Model
                 </h1>
-                
-                <p className="mt-6 text-lg text-slate-300 max-w-xl">
+
+                <p className="mt-4 sm:mt-6 text-base sm:text-lg text-slate-300 max-w-xl mx-auto lg:mx-0">
                   Genuine parts, expert fitment advice, and fast delivery across Ghana. Trusted by thousands of workshops and drivers.
                 </p>
 
-                <form onSubmit={(e) => { e.preventDefault(); navigate(search.trim() ? `/shop?q=${encodeURIComponent(search)}` : "/shop"); }} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto lg:mx-0">
+                <form
+                  onSubmit={(e) => { e.preventDefault(); navigate(search.trim() ? `/shop?q=${encodeURIComponent(search)}` : "/shop"); }}
+                  className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto lg:mx-0"
+                >
                   <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search parts, brands, or vehicle models..."
-                      className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary backdrop-blur-sm transition-all"
+                      className="w-full h-12 sm:h-14 pl-12 pr-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary backdrop-blur-sm transition-all text-sm sm:text-base"
                     />
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="h-14 px-8 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-white font-semibold shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all"
+                  <Button
+                    type="submit"
+                    className="h-12 sm:h-14 px-6 sm:px-8 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-white font-semibold shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all text-sm sm:text-base"
                   >
                     Search
                   </Button>
                 </form>
 
-                <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-6">
-                  <Link to="/shop" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-white text-slate-900 font-semibold shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
-                    <Car className="w-5 h-5" /> 
+                {/* CTA buttons */}
+                <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4">
+                  <Link to="/shop" className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl bg-white text-slate-900 font-semibold shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 text-sm sm:text-base">
+                    <Car className="w-5 h-5" />
                     Shop Parts
                   </Link>
-                  <WhatsAppButton label="Contact Us" className="h-14 px-8 shadow-lg shadow-green-500/30" />
+                  <Link to="/shop?q=car+spec" className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-xl shadow-purple-500/25 hover:shadow-2xl hover:shadow-purple-500/30 transition-all hover:-translate-y-1 text-sm sm:text-base">
+                    <Paintbrush className="w-5 h-5" />
+                    Spec your Car
+                  </Link>
+                  <WhatsAppButton label="Contact Us" className="h-12 sm:h-14 px-6 sm:px-8 shadow-lg shadow-green-500/30" />
                 </div>
 
-                <div className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-8">
+                {/* Trust badges */}
+                <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6">
                   {[{ icon: Shield, label: "Verified Parts" }, { icon: Truck, label: "Fast Delivery" }, { icon: CheckCircle, label: "Quality Assured" }].map(({ icon: Icon, label }) => (
                     <div key={label} className="flex items-center gap-2 text-slate-300">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-primary" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                       </div>
-                      <span className="text-sm font-medium">{label}</span>
+                      <span className="text-xs sm:text-sm font-medium">{label}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="hidden lg:block relative animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-transparent rounded-3xl blur-3xl"></div>
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                  <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200" alt="Premium Auto Parts" className="w-full aspect-[4/3] object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-6 left-6 right-6">
-                    <div className="grid grid-cols-3 gap-4">
+              {/* Right: hero image */}
+              <div className="relative animate-fade-in-up lg:pt-12 lg:pb-16" style={{ animationDelay: '200ms' }}>
+                {/* Glow behind image */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-3xl blur-2xl scale-95" />
+
+                <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+                  <img
+                    src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200"
+                    alt="Premium Auto Parts"
+                    className="w-full aspect-[4/3] sm:aspect-video lg:aspect-[4/3] object-cover"
+                  />
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+
+                  {/* Stats overlay on image */}
+                  <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4">
                       {stats.map((stat) => (
-                        <div key={stat.label} className="text-center p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
-                          <p className="text-2xl font-bold text-white">{stat.value}</p>
-                          <p className="text-xs text-slate-300">{stat.label}</p>
+                        <div key={stat.label} className="text-center p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+                          <p className="text-lg sm:text-2xl font-bold text-white">{stat.value}</p>
+                          <p className="text-[10px] sm:text-xs text-slate-300">{stat.label}</p>
                         </div>
                       ))}
                     </div>
@@ -136,8 +156,9 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-            <ArrowDown className="w-6 h-6 text-white/50" />
+          {/* Scroll indicator */}
+          <div className="hidden sm:block absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+            <ArrowDown className="w-5 h-5 text-white/40" />
           </div>
         </section>
 
