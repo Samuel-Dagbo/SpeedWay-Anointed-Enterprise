@@ -133,6 +133,10 @@ api.interceptors.request.use(
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    if (config.data instanceof FormData) {
+      delete config.headers?.["Content-Type"];
+    }
 
     // Initialize retry count
     const apiConfig = config as ApiRequestConfig;
