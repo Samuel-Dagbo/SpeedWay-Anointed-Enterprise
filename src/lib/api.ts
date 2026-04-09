@@ -4,6 +4,7 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } f
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const DEFAULT_TIMEOUT = 15000; // 15 seconds
+const UPLOAD_TIMEOUT = 120000; // 2 minutes for uploads
 const MAX_RETRIES = 3;
 const BASE_DELAY = 500; // 500ms initial retry delay
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
@@ -312,3 +313,4 @@ export function getApiErrorMessage(error: unknown): string {
 
 export default api;
 export type { ApiRequestConfig };
+export { UPLOAD_TIMEOUT };

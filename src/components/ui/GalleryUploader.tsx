@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback } from "react";
 import { Upload, X, Loader2, ImageIcon, Video, GripVertical, Plus, Link2 } from "lucide-react";
-import api from "../../lib/api";
+import api, { UPLOAD_TIMEOUT } from "../../lib/api";
 import { getApiErrorMessage } from "../../lib/api";
 
 export type GalleryItem = {
@@ -67,7 +67,7 @@ export const GalleryUploader: React.FC<GalleryUploaderProps> = ({
       try {
         const formData = new FormData();
         formData.append("file", file);
-        const res = await api.post("/products/upload-gallery", formData);
+        const res = await api.post("/products/upload-gallery", formData, { timeout: UPLOAD_TIMEOUT });
         if (res.data?.url) {
           newItems.push({ url: res.data.url, type: res.data.type || (isVideo ? "video" : "image") });
         } else {
