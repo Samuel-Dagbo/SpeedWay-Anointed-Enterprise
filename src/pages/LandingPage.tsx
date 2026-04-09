@@ -249,7 +249,7 @@ export const LandingPage: React.FC = () => {
                     <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
                   </Link>
                   <Link
-                    to="/shop?q=car+spec"
+                    to="/shop?q=Car+Modification+Accessories"
                     className="group inline-flex items-center gap-2 h-11 sm:h-12 px-5 sm:px-7 rounded-xl sm:rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm sm:text-base font-semibold shadow-xl shadow-purple-500/20 hover:shadow-2xl hover:shadow-purple-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <Paintbrush className="w-4 h-4 sm:w-5 sm:h-5" />

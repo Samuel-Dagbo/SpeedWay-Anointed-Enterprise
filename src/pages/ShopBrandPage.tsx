@@ -53,8 +53,15 @@ export const ShopBrandPage: React.FC = () => {
   const categoryId = new URLSearchParams(window.location.search).get("category");
 
   React.useEffect(() => {
+    if (!brandId || brandId === "undefined" || brandId === "null") {
+      navigate("/shop");
+      return;
+    }
+  }, [brandId, navigate]);
+
+  React.useEffect(() => {
     async function loadData() {
-      if (!brandId) return;
+      if (!brandId || brandId === "undefined" || brandId === "null") return;
       setLoading(true);
       try {
         const [brandRes, productsRes] = await Promise.all([
@@ -70,7 +77,7 @@ export const ShopBrandPage: React.FC = () => {
 
         setBrand(brandRes.data);
 
-        if (categoryId) {
+        if (categoryId && categoryId !== "undefined" && categoryId !== "null") {
           const catRes = await api.get<{ id: string; name: string }>(`/categories/${categoryId}`);
           setCategory(catRes.data);
         }

@@ -58,8 +58,15 @@ export const ShopCategoryPage: React.FC = () => {
   const [showAll, setShowAll] = React.useState(false);
 
   React.useEffect(() => {
+    if (!categoryId || categoryId === "undefined" || categoryId === "null") {
+      navigate("/shop");
+      return;
+    }
+  }, [categoryId, navigate]);
+
+  React.useEffect(() => {
     async function loadData() {
-      if (!categoryId) return;
+      if (!categoryId || categoryId === "undefined" || categoryId === "null") return;
       setLoading(true);
       setError(null);
       try {

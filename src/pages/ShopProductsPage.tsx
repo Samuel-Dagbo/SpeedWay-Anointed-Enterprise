@@ -79,7 +79,7 @@ export const ShopProductsPage: React.FC = () => {
     async function loadBreadcrumbs() {
       try {
         const [catRes, brandRes, modelRes] = await Promise.all([
-          categoryId ? api.get<Category>(`/categories/${categoryId}`) : Promise.resolve({ data: null }),
+          (categoryId && categoryId !== "undefined" && categoryId !== "null") ? api.get<Category>(`/categories/${categoryId}`) : Promise.resolve({ data: null }),
           brandId ? api.get<Brand>(`/brands/${brandId}`) : Promise.resolve({ data: null }),
           modelId ? api.get<Model>(`/models/${modelId}`) : Promise.resolve({ data: null })
         ]);
