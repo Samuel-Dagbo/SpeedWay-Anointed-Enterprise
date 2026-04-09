@@ -30,7 +30,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setError("No file selected");
+      return;
+    }
 
     if (!file.type.startsWith("image/")) {
       setError("Please select an image file");
@@ -51,9 +54,15 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     try {
       const res = await api.post(endpoint, formData);
-      onChange(res.data.url);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
+      if (res.data?.url) {
+        onChange(res.data.url);
+      } else {
+        setError("Upload failed - no URL returned");
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      const message = getApiErrorMessage(err);
+      setError(message || "Upload failed");
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";

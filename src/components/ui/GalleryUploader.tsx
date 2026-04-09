@@ -44,6 +44,7 @@ export const GalleryUploader: React.FC<GalleryUploaderProps> = ({
     setError(null);
 
     const newItems: GalleryItem[] = [];
+    let hasError = false;
 
     for (let i = 0; i < files.length && value.length + newItems.length < maxItems; i++) {
       const file = files[i];
@@ -67,9 +68,19 @@ export const GalleryUploader: React.FC<GalleryUploaderProps> = ({
         const formData = new FormData();
         formData.append("file", file);
         const res = await api.post("/products/upload-gallery", formData);
-        newItems.push({ url: res.data.url, type: res.data.type });
-      } catch (err) {
-        setError(getApiErrorMessage(err));
+        if (res.data?.url) {
+          newItems.push({ url: res.data.url, type: res.data.type || (isVideo ? "video" : "image") });
+        } else {
+          setError("Upload failed - no URL returned");
+          hasError = true;
+          break;
+        }
+      } catch (err: any) {
+        console.error("Gallery upload error:", err);
+        const message = getApiErrorMessage(err);
+        setError(message || "Upload failed");
+        hasError = true;
+        break;
       }
     }
 
