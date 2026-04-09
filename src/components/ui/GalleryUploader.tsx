@@ -67,7 +67,10 @@ export const GalleryUploader: React.FC<GalleryUploaderProps> = ({
       try {
         const formData = new FormData();
         formData.append("file", file);
-        const res = await api.post("/products/upload-gallery", formData, { timeout: UPLOAD_TIMEOUT });
+        const res = await api.post("/products/upload-gallery", formData, { 
+          timeout: UPLOAD_TIMEOUT,
+          skipRetry: true 
+        });
         if (res.data?.url) {
           newItems.push({ url: res.data.url, type: res.data.type || (isVideo ? "video" : "image") });
         } else {

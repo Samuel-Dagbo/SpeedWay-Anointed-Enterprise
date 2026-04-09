@@ -53,7 +53,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     formData.append("image", file);
 
     try {
-      const res = await api.post(endpoint, formData, { timeout: UPLOAD_TIMEOUT });
+      const res = await api.post(endpoint, formData, { 
+        timeout: UPLOAD_TIMEOUT,
+        skipRetry: true 
+      });
       if (res.data?.url) {
         onChange(res.data.url);
       } else {

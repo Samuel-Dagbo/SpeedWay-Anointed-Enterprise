@@ -129,14 +129,17 @@ const api: AxiosInstance = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = getAuthToken();
-    if (token) {
-      config.headers = config.headers ?? {};
-      config.headers.Authorization = `Bearer ${token}`;
+    // Handle FormData - let browser set Content-Type with boundary
+    if (config.data instanceof FormData) {
+      config.headers = config.headers || {};
+      delete config.headers["Content-Type"];
     }
     
-    if (config.data instanceof FormData) {
-      delete config.headers?.["Content-Type"];
+    // Add auth token
+    const token = getAuthToken();
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     // Initialize retry count
